@@ -13,57 +13,76 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OrderService = void 0;
-// order.service.ts
-const product_model_1 = __importDefault(require("../products/product.model"));
 const order_model_1 = __importDefault(require("./order.model"));
-const addOrder = (orderData) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { productId, quantity } = orderData;
-        // Fetch the product from the database
-        const product = yield product_model_1.default.findById(productId);
-        if (!product) {
-            throw new Error("Product not found");
-        }
-        // Update the inventory
-        if (product.inventory.quantity < quantity) {
-            throw new Error("Insufficient quantity available in inventory");
-        }
-        product.inventory.quantity -= quantity;
-        product.inventory.inStock = product.inventory.quantity > 0;
-        // Save the updated product
-        yield product.save();
-        // Create a new order
-        const existingOrder = yield order_model_1.default.findOne({ email: orderData.email });
-        // If an order with the provided email and product exists, update the quantity
-        if (existingOrder) {
-            existingOrder.quantity += orderData.quantity;
-            yield existingOrder.save();
-            // Return the updated order
-            return existingOrder;
-        }
-        // If no order with the provided email and product exists, create a new order
-        const order = yield order_model_1.default.create(orderData);
-        // Return the created order
-        return order;
+const product_model_1 = __importDefault(require("../products/product.model"));
+// Add a new order
+const addOrder = (payload) => __awaiter(void 0, void 0, void 0, function* () {
+    const { car, email, quantity } = payload;
+    if (!car) {
+        throw new Error('Car ID is required');
     }
-    catch (error) {
-        console.error("Error adding order:", error);
-        throw error;
+    const product = yield product_model_1.default.findById(car);
+    if (!product) {
+        throw new Error('Car not found');
     }
+    if (product.quantity < quantity) {
+        throw new Error('Insufficient stock');
+    }
+    // Check if an order exists for this car and email
+    const existingOrder = yield order_model_1.default.findOne({ car, email });
+    let message;
+    let order;
+    if (existingOrder) {
+        // Update existing order without modifying totalPrice
+        existingOrder.quantity += quantity;
+        order = yield existingOrder.save(); // Return the updated order
+        message = 'Existing order updated successfully.';
+    }
+    else {
+        // Create a new order and save it
+        const newOrder = new order_model_1.default(payload); // Keep initial totalPrice as provided
+        order = yield newOrder.save(); // Return the created order
+        message = 'New order created successfully.';
+    }
+    // Deduct the quantity from product stock
+    product.quantity -= quantity;
+    if (product.quantity === 0) {
+        product.inStock = false;
+    }
+    yield product.save();
+    // Return the complete order data
+    return { success: true, message, order }; // Returning the order data
 });
-const getAllOrders = (emailId) => __awaiter(void 0, void 0, void 0, function* () {
-    let query = {};
-    if (emailId) {
-        query = {
-            $or: [
-                { email: { $regex: emailId, $options: 'i' } },
-            ]
-        };
-    }
-    const result = yield order_model_1.default.find(query);
-    return result;
+// Calculate revenue from all orders
+const calculateRevenue = () => __awaiter(void 0, void 0, void 0, function* () {
+    const orders = yield order_model_1.default.aggregate([
+        {
+            $lookup: {
+                from: "productmodels", // Join with the products collection
+                localField: "car", // Field in the orders collection
+                foreignField: "_id", // Field in the products collection
+                as: "carDetails" // Alias for joined data
+            }
+        },
+        {
+            $unwind: "$carDetails" // Deconstruct the array to objects
+        },
+        {
+            $project: {
+                revenue: { $multiply: ["$quantity", "$carDetails.price"] } // Multiply quantity by car price
+            }
+        },
+        {
+            $group: {
+                _id: null, // Group all documents
+                totalRevenue: { $sum: "$revenue" } // Sum up the revenue
+            }
+        }
+    ]);
+    // Return totalRevenue if calculated, otherwise return 0
+    return orders.length > 0 ? orders[0].totalRevenue : 0;
 });
 exports.OrderService = {
     addOrder,
-    getAllOrders,
+    calculateRevenue,
 };

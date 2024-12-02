@@ -1,7 +1,4 @@
 // product.interface.ts
-
-
-
 export type Product = {
     brand: string;        // The name of the product
     model: string;        // The name of the product

@@ -21,11 +21,11 @@ function main() {
         try {
             yield mongoose_1.default.connect(config_1.default.db_url);
             app_1.default.listen(config_1.default.port, () => {
-                // console.log(`Example app listening on port ${process.env.PORT}`)
+                console.log(`Example app listening on port ${process.env.PORT}`);
             });
         }
         catch (err) {
-            // console.log(err);
+            console.log(err);
         }
     });
 }

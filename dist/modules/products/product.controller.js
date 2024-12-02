@@ -16,34 +16,18 @@ exports.ProductControllers = void 0;
 const product_service_1 = require("./product.service");
 const joi_1 = __importDefault(require("joi"));
 const createProductSchema = joi_1.default.object({
-    name: joi_1.default.string().required(),
+    brand: joi_1.default.string().required(),
+    model: joi_1.default.string().required(),
+    year: joi_1.default.number().required(),
     description: joi_1.default.string().required(),
     price: joi_1.default.number().required(),
     category: joi_1.default.string().required(),
-    tags: joi_1.default.array().items(joi_1.default.string()).required(),
-    variants: joi_1.default.array().items(joi_1.default.object({
-        type: joi_1.default.string().required(),
-        value: joi_1.default.string().required(),
-    })).required(),
-    inventory: joi_1.default.object({
-        quantity: joi_1.default.number().required(),
-        inStock: joi_1.default.boolean().required(),
-    }).required(),
+    quantity: joi_1.default.number().required(),
+    inStock: joi_1.default.boolean().required(),
 });
 const updateProductSchema = joi_1.default.object({
-    name: joi_1.default.string(),
-    description: joi_1.default.string(),
     price: joi_1.default.number(),
-    category: joi_1.default.string(),
-    tags: joi_1.default.array().items(joi_1.default.string()),
-    variants: joi_1.default.array().items(joi_1.default.object({
-        type: joi_1.default.string(),
-        value: joi_1.default.string(),
-    })),
-    inventory: joi_1.default.object({
-        quantity: joi_1.default.number(),
-        inStock: joi_1.default.boolean(),
-    }),
+    quantity: joi_1.default.number()
 });
 const addProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -104,7 +88,7 @@ const getProductById = (req, res) => __awaiter(void 0, void 0, void 0, function*
         }
         res.json({
             success: true,
-            message: "Product fetched successfully!",
+            message: "Car retrieved successfully",
             data: product,
         });
     }
@@ -112,7 +96,7 @@ const getProductById = (req, res) => __awaiter(void 0, void 0, void 0, function*
         if (err instanceof Error) {
             res.status(500).json({
                 success: false,
-                message: 'Failed to retrieve product',
+                message: 'Failed to retrieve Car',
                 error: err.message,
             });
         }
